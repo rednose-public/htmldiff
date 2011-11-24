@@ -300,11 +300,49 @@ class TextNodeDiffer {
 		$this->oldTextNodes[$start]->modification->firstOfID = true;
 
 		$root = $this->oldTextNodes[$start]->getLastCommonParent($this->oldTextNodes[$end-1])->parent;
-
 		$junk1 = $junk2 = null;
 		$deletedNodes = $root->getMinimalDeletedSet($this->deletedID, $junk1, $junk2);
 
 		HTMLDiffer::diffDebug( "Minimal set of deleted nodes of size " . count($deletedNodes) . "\n" );
+
+        // Quickfix to display deleted paragraphs.
+		$rootStart = $this->oldTextNodes[$start]->getLastCommonParent($this->oldTextNodes[$end-1])->parent;
+		$rootEnd = $this->oldTextNodes[$end-1]->getLastCommonParent($this->oldTextNodes[$start])->parent;
+
+        if ($rootStart !== $rootEnd) {
+            $paragraphs = array();
+            $deletedNodes = array();
+            for ($i = $start; $i < $end; ++$i) {
+                $node = $this->oldTextNodes[$i];
+                $deletedNodes[] = $node;
+                /*
+                $node = $this->oldTextNodes[$i]->parent;
+                $paragraphs[spl_object_hash($node)] = $node;
+                */
+            }
+
+            /*
+            $firstParagraph = array_shift($paragraphs);
+            $lastParagraph = array_pop($paragraphs);
+
+            $firstChildren = $firstParagraph->children;
+            foreach ($firstParagraph->children as $k => $v) {
+                if ($v->modification->type === Modification::NONE) {
+                    unset($firstParagraph->children[$k]);
+                }
+            }
+
+            foreach ($lastParagraph->children as $k => $v) {
+                if ($v->modification->type === Modification::NONE) {
+                    unset($lastParagraph->children[$k]);
+                }
+            }
+
+            $deletedNodes = array_merge($deletedNodes, $firstParagraph->children);
+            $deletedNodes = array_merge($deletedNodes, $paragraphs);
+            $deletedNodes = array_merge($deletedNodes, array($lastParagraph));
+            */
+        }
 
 		// Set prevLeaf to the leaf after which the old HTML needs to be
 		// inserted
@@ -317,7 +355,10 @@ class TextNodeDiffer {
 			$nextLeaf = $this->textNodes[$before];
 		}
 
+        //$chunk = null;
 		while (count($deletedNodes) > 0) {
+            $paragraph = null;
+
 			if (isset($prevLeaf)) {
 				$prevResult = $prevLeaf->getLastCommonParent($deletedNodes[0]);
 			} else {
@@ -356,14 +397,72 @@ class TextNodeDiffer {
 
 			if ($prevResult->lastCommonParentDepth > $nextResult->lastCommonParentDepth) {
 				// Inserting at the front
-				if ($prevResult->splittingNeeded) {
+                if ($prevResult->splittingNeeded) {
 					$prevLeaf->parent->splitUntil($prevResult->parent, $prevLeaf, true);
+                    /*
+                    $split = $prevLeaf;
+                    $includeLeft = null;
+
+                    $test = array();
+                    $part1 = new TagNode(null, $prevLeaf->parent->qName, $prevLeaf->parent->attributes);
+                    $part2 = new TagNode(null, $prevLeaf->parent->qName, $prevLeaf->parent->attributes);
+                    $part1->setParent($prevLeaf->parent->parent);
+                    $part2->setParent($prevLeaf->parent->parent);
+
+                    $onSplit = false;
+                    $pastSplit = false;
+                    foreach ($prevLeaf->parent->children as &$child)
+                    {
+                        if ($child === $split) {
+                            $onSplit = true;
+                        }
+                        if(!$pastSplit || ($onSplit && $includeLeft)) {
+                            $child->setParent($part1);
+                            $part1->children[] = $child;
+                        } else {
+                            $child->setParent($part2);
+                            $part2->children[] = $child;
+                            $test[] = clone $child;
+                        }
+                        if ($onSplit) {
+                            $onSplit = false;
+                            $pastSplit = true;
+                        }
+                    }
+                    $myindexinparent = $prevLeaf->parent->parent->getIndexOf($prevLeaf->parent);
+                    if (!empty($part1->children)) {
+    //                    $prevLeaf->parent->parent->addChildAbsolute($part1, $myindexinparent + 1);
+                    }
+                    if (!empty($part2->children)) {
+    //                    $prevLeaf->parent->parent->addChildAbsolute($part2, $myindexinparent + 1);
+                    }
+                    if (!empty($part1->children) && !empty($part2->children)) {
+                        $splitOccured = true;
+                    }
+
+                    //$prevLeaf->parent->children = array_values($prevLeaf->parent->children);
+
+                    //$prevLeaf->parent->parent->removeChild($myindexinparent);
+
+                    //$prevResult->parent->addChildAbsolute($part2,$prevResult->indexInLastCommonParent + 1, true);
+                    $chunk = $part2;
+                    $chunk = $test;
+                    */
 				}
-				$prevLeaf = $deletedNodes[0]->copyTree();
+
+ 				$prevLeaf = $deletedNodes[0]->copyTree();
 				unset($deletedNodes[0]);
 				$deletedNodes = array_values($deletedNodes);
 				$prevLeaf->setParent($prevResult->parent);
-				$prevResult->parent->addChildAbsolute($prevLeaf,$prevResult->indexInLastCommonParent + 1);
+                $prevResult->parent->addChildAbsolute($prevLeaf,$prevResult->indexInLastCommonParent + 1, true);
+                /*
+                if (count($deletedNodes) == 0) {
+                    if (isset($chunk)) {
+                        $prevLeaf->children = array_merge($prevLeaf->children, $chunk);
+                        $chunk = null;
+                    }
+                }
+                */
 			} else if ($prevResult->lastCommonParentDepth < $nextResult->lastCommonParentDepth) {
 				// Inserting at the back
 				if ($nextResult->splittingNeeded) {
@@ -453,6 +552,7 @@ class HTMLDiffer {
 
 		$diffengine = new WikiDiff3();
 		$differences = $this->preProcess($diffengine->diff_range($domfrom->getDiffLines(), $domto->getDiffLines()));
+
 		unset($xml_parser, $diffengine);
 
 		$domdiffer = new TextNodeDiffer($domto, $domfrom);
