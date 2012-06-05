@@ -121,7 +121,7 @@ class TagNode extends Node {
 		return $this->openingTag = Xml::openElement($this->qName, $this->attributes);
 	}
 
-	public function addChildAbsolute(Node $node, $index) {
+	public function addChildAbsolute(Node $node, $index, $test = false) {
 		array_splice($this->children, $index, 0, array($node));
 	}
 
