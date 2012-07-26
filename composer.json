@@ -8,7 +8,8 @@
     "authors": [
         {
             "name": "Marc Bontje",
-            "email": "marc@rednose.nl"
+            "email": "marc@rednose.nl",
+            "homepage": "www.rednose.nl"
         }
     ],
     "require": {
