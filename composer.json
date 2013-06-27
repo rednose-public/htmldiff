@@ -1,15 +1,14 @@
 {
-    "name": "libbit/htmldiff",
+    "name": "rednose/htmldiff",
     "type": "library",
-    "description": "LiBBiT HTMLDiff fork",
+    "description": "RedNose HTMLDiff fork",
     "keywords": ["html", "diff"],
-    "homepage": "http://www.libbit.eu",
-    "license": "EUPL",
+    "homepage": "http://www.rednose.nl",
     "authors": [
         {
             "name": "Marc Bontje",
             "email": "marc@rednose.nl",
-            "homepage": "www.rednose.nl"
+            "homepage": "http://www.rednose.nl"
         }
     ],
     "require": {
